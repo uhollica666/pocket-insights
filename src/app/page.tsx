@@ -16,7 +16,7 @@ import { isDateInCurrentMonth } from "@/lib/date-utils";
 import { getSavingsInsights, type SavingsInsightsInput } from "@/ai/flows/savings-insights";
 import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, Timestamp, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, Timestamp, query, orderBy, FirestoreError } from "firebase/firestore";
 
 export default function PocketInsightsPage() {
   const { toast } = useToast();
@@ -61,10 +61,16 @@ export default function PocketInsightsPage() {
 
     } catch (error) {
       console.error("Error fetching data from Firestore:", error);
+      let description = "Could not load financial records. Please check console and try again later.";
+      if (error instanceof FirestoreError) {
+        description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
+      } else if (error instanceof Error) {
+        description = `Error: ${error.message}. Check console.`;
+      }
       toast({
         variant: "destructive",
         title: "Error Loading Data",
-        description: "Could not load financial records. Please check console and try again later.",
+        description,
       });
     } finally {
       setIsLoadingData(false);
@@ -137,9 +143,11 @@ export default function PocketInsightsPage() {
       toast({ title: "Income Added", description: `${data.source}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
       console.error("Error adding income to Firestore: ", error);
-      let description = "Could not add income record. Check console for details.";
-      if (error instanceof Error) {
-        description = error.message;
+      let description = "Could not add income record. Please check console for details.";
+      if (error instanceof FirestoreError) {
+        description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
+      } else if (error instanceof Error) {
+        description = `Error: ${error.message}. Check console.`;
       }
       toast({ variant: "destructive", title: "Error Adding Income", description });
     }
@@ -165,9 +173,11 @@ export default function PocketInsightsPage() {
       toast({ title: "Expense Added", description: `${data.category}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
       console.error("Error adding expense to Firestore: ", error);
-      let description = "Could not add expense record. Check console for details.";
-      if (error instanceof Error) {
-        description = error.message;
+      let description = "Could not add expense record. Please check console for details.";
+      if (error instanceof FirestoreError) {
+        description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
+      } else if (error instanceof Error) {
+        description = `Error: ${error.message}. Check console.`;
       }
       toast({ variant: "destructive", title: "Error Adding Expense", description });
     }
@@ -273,3 +283,4 @@ export default function PocketInsightsPage() {
     </div>
   );
 }
+
