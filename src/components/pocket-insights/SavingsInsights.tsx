@@ -1,3 +1,4 @@
+
 "use client";
 
 import type * as z from "zod";
@@ -27,12 +28,19 @@ export function SavingsInsightsForm({ onSubmit, isLoading }: SavingsInsightsForm
   const form = useForm<z.infer<typeof savingsInsightsFormSchema>>({
     resolver: zodResolver(savingsInsightsFormSchema),
     defaultValues: {
-      targetSavingsRate: undefined,
+      targetSavingsRate: null, // Changed from undefined
     },
   });
 
   const handleSubmit = async (values: z.infer<typeof savingsInsightsFormSchema>) => {
-    await onSubmit(values.targetSavingsRate);
+    // Schema expects a number, ensure null is handled or converted if necessary
+    if (values.targetSavingsRate !== null) {
+      await onSubmit(values.targetSavingsRate);
+    } else {
+      // Optionally handle the case where targetSavingsRate is null (e.g., show a message)
+      // For now, we rely on schema validation to prevent submission if null is not allowed
+      form.trigger(); // Trigger validation to show error messages
+    }
   };
 
   return (
@@ -52,7 +60,12 @@ export function SavingsInsightsForm({ onSubmit, isLoading }: SavingsInsightsForm
                   min="0" 
                   max="1" 
                   {...field} 
-                  onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
+                  value={field.value === null ? '' : field.value} // Display empty string for null
+                  onChange={e => {
+                    const value = e.target.value;
+                    // Allow null if input is empty, otherwise parse or set null for invalid parse
+                    field.onChange(value === '' ? null : parseFloat(value) || null);
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -147,3 +160,4 @@ export function SavingsInsightsSection({
     </>
   );
 }
+

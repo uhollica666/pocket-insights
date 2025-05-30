@@ -1,3 +1,4 @@
+
 "use client";
 
 import type * as z from "zod";
@@ -37,15 +38,22 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
     defaultValues: {
       category: undefined,
       description: "",
-      amount: undefined,
+      amount: null, // Changed from undefined
       date: new Date(),
     },
   });
 
   const handleSubmit = (values: z.infer<typeof expenseFormSchema>) => {
-    onSubmit(values);
+    const dataToSubmit = {
+        ...values,
+        amount: values.amount === null ? 0 : values.amount, 
+    };
+    onSubmit(dataToSubmit as Omit<ExpenseRecord, "id">);
     form.reset();
     form.setValue("date", new Date()); // Reset date to today
+    form.setValue("amount", null); // Explicitly reset amount to null
+    form.setValue("category", undefined);
+    form.setValue("description", "");
   };
 
   return (
@@ -57,7 +65,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
@@ -95,7 +103,16 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             <FormItem>
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || undefined)} />
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  {...field} 
+                  value={field.value === null ? '' : field.value} // Display empty string for null
+                  onChange={e => {
+                    const value = e.target.value;
+                    field.onChange(value === '' ? null : parseFloat(value) || null);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -122,3 +139,4 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
     </Form>
   );
 }
+

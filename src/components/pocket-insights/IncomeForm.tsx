@@ -1,3 +1,4 @@
+
 "use client";
 
 import type * as z from "zod";
@@ -27,15 +28,22 @@ export function IncomeForm({ onSubmit }: IncomeFormProps) {
     resolver: zodResolver(incomeFormSchema),
     defaultValues: {
       source: "",
-      amount: undefined, // Use undefined for number inputs to allow placeholder
+      amount: null, // Changed from undefined
       date: new Date(),
     },
   });
 
   const handleSubmit = (values: z.infer<typeof incomeFormSchema>) => {
-    onSubmit(values);
+    // Ensure amount is a number before submitting, schema will validate
+    const dataToSubmit = {
+        ...values,
+        amount: values.amount === null ? 0 : values.amount, // Or handle as per your schema's expectation for null
+    };
+    onSubmit(dataToSubmit as Omit<IncomeRecord, "id">); // Cast might be needed if schema expects number
     form.reset();
      form.setValue("date", new Date()); // Reset date to today after submission
+     form.setValue("amount", null); // Explicitly reset amount to null
+     form.setValue("source", ""); 
   };
 
   return (
@@ -61,7 +69,16 @@ export function IncomeForm({ onSubmit }: IncomeFormProps) {
             <FormItem>
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || undefined)} />
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  {...field} 
+                  value={field.value === null ? '' : field.value} // Display empty string for null
+                  onChange={e => {
+                    const value = e.target.value;
+                    field.onChange(value === '' ? null : parseFloat(value) || null);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,3 +105,4 @@ export function IncomeForm({ onSubmit }: IncomeFormProps) {
     </Form>
   );
 }
+
