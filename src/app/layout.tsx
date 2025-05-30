@@ -28,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#468A8F" /> {/* Primary color for theme */}
+        <meta name="theme-color" content="#468A8F" />
+        <meta name="msapplication-TileColor" content="#468A8F" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="#468A8F" />
       </head>
       <body 
         className={cn(
