@@ -35,10 +35,10 @@ export default function PocketInsightsPage() {
       const incomeSnapshot = await getDocs(incomeQuery);
       const fetchedIncomeRecords = incomeSnapshot.docs.map(doc => {
         const data = doc.data();
-        return { 
-          ...data, 
-          id: doc.id, 
-          date: (data.date as Timestamp).toDate() 
+        return {
+          ...data,
+          id: doc.id,
+          date: (data.date as Timestamp).toDate()
         } as IncomeRecord;
       });
       setIncomeRecords(fetchedIncomeRecords);
@@ -47,10 +47,10 @@ export default function PocketInsightsPage() {
       const expenseSnapshot = await getDocs(expenseQuery);
       const fetchedExpenseRecords = expenseSnapshot.docs.map(doc => {
         const data = doc.data();
-        return { 
-          ...data, 
-          id: doc.id, 
-          date: (data.date as Timestamp).toDate() 
+        return {
+          ...data,
+          id: doc.id,
+          date: (data.date as Timestamp).toDate()
         } as ExpenseRecord;
       });
       setExpenseRecords(fetchedExpenseRecords);
@@ -108,7 +108,7 @@ export default function PocketInsightsPage() {
         categoryWithMaxSpending = category as ExpenseCategory;
       }
     }
-    
+
     return categoryWithMaxSpending ? { category: categoryWithMaxSpending, amount: maxAmount } : undefined;
   }, [currentMonthExpenseRecords]);
 
@@ -181,7 +181,7 @@ export default function PocketInsightsPage() {
       setIsLoadingInsights(false);
     }
   };
-  
+
   if (isLoadingData) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center">
