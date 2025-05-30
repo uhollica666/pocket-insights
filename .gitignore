@@ -43,3 +43,20 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+
+# Next.js build output (if your Next.js project is in 'functions/')
+functions/.next/
+
+# Or more specifically for the Firebase structure you have:
+.firebase/*/functions/.next/
+
+# General Next.js build output (if you also have a Next.js app at the root)
+.next/
+
+# Node modules (should already be there, but just in case)
+node_modules/
+functions/node_modules/
+
+# Firebase emulator data (if you use it)
+.firebase/emulators/
