@@ -1,9 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// Your web app's Firebase configuration
-// IMPORTANT: Replace with your actual Firebase project configuration
-// You can get this from the Firebase console: Project settings > General > Your apps > Web app
+// Firebase configuration is read from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -11,11 +9,20 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
 let app;
 if (!getApps().length) {
+  // Check if all required config values are present
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.error(
+      'Firebase API Key or Project ID is missing. Please check your .env.local file.'
+    );
+    // Potentially throw an error or handle this state appropriately
+    // For now, we'll let it proceed, but Firestore operations will likely fail.
+  }
   app = initializeApp(firebaseConfig);
 } else {
   app = getApp();
@@ -23,4 +30,4 @@ if (!getApps().length) {
 
 const db = getFirestore(app);
 
-export { app, db };
+export { db, app }; // Exporting app as well in case it's needed elsewhere
