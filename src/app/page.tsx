@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -151,7 +152,7 @@ export default function PocketInsightsPage() {
              <CardDescription>Log your income and expenses to keep track of your finances.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="income" className="w-full">
+            <Tabs defaultValue="expense" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="income">Add Income</TabsTrigger>
                 <TabsTrigger value="expense">Add Expense</TabsTrigger>
