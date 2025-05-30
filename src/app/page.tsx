@@ -31,6 +31,7 @@ export default function PocketInsightsPage() {
   const fetchData = useCallback(async () => {
     setIsLoadingData(true);
     try {
+      console.log("Fetching income records...");
       const incomeQuery = query(collection(db, "incomeRecords"), orderBy("date", "desc"));
       const incomeSnapshot = await getDocs(incomeQuery);
       const fetchedIncomeRecords = incomeSnapshot.docs.map(doc => {
@@ -42,7 +43,9 @@ export default function PocketInsightsPage() {
         } as IncomeRecord;
       });
       setIncomeRecords(fetchedIncomeRecords);
+      console.log("Fetched income records:", fetchedIncomeRecords);
 
+      console.log("Fetching expense records...");
       const expenseQuery = query(collection(db, "expenseRecords"), orderBy("date", "desc"));
       const expenseSnapshot = await getDocs(expenseQuery);
       const fetchedExpenseRecords = expenseSnapshot.docs.map(doc => {
@@ -54,12 +57,14 @@ export default function PocketInsightsPage() {
         } as ExpenseRecord;
       });
       setExpenseRecords(fetchedExpenseRecords);
+      console.log("Fetched expense records:", fetchedExpenseRecords);
+
     } catch (error) {
       console.error("Error fetching data from Firestore:", error);
       toast({
         variant: "destructive",
         title: "Error Loading Data",
-        description: "Could not load financial records. Please try again later.",
+        description: "Could not load financial records. Please check console and try again later.",
       });
     } finally {
       setIsLoadingData(false);
@@ -113,32 +118,58 @@ export default function PocketInsightsPage() {
   }, [currentMonthExpenseRecords]);
 
   const handleAddIncome = async (data: Omit<IncomeRecord, "id">) => {
+    console.log("handleAddIncome called with data:", data);
+    if (!(data.date instanceof Date)) {
+      console.error("handleAddIncome: data.date is not a valid Date object", data.date);
+      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid. Please check console." });
+      return;
+    }
     try {
-      const docRef = await addDoc(collection(db, "incomeRecords"), {
+      const firestoreData = {
         ...data,
-        date: Timestamp.fromDate(data.date), // Convert Date to Firestore Timestamp
-      });
-      // Optimistically update UI or re-fetch
-      setIncomeRecords(prev => [{ ...data, id: docRef.id }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
+        date: Timestamp.fromDate(data.date),
+      };
+      console.log("Attempting to add income to Firestore:", JSON.stringify(firestoreData, null, 2));
+      const docRef = await addDoc(collection(db, "incomeRecords"), firestoreData);
+      console.log("Income added successfully with ID:", docRef.id);
+      
+      setIncomeRecords(prev => [{ ...data, id: docRef.id, date: data.date }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
       toast({ title: "Income Added", description: `${data.source}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
       console.error("Error adding income to Firestore: ", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not add income record." });
+      let description = "Could not add income record. Check console for details.";
+      if (error instanceof Error) {
+        description = error.message;
+      }
+      toast({ variant: "destructive", title: "Error Adding Income", description });
     }
   };
 
   const handleAddExpense = async (data: Omit<ExpenseRecord, "id">) => {
+    console.log("handleAddExpense called with data:", data);
+    if (!(data.date instanceof Date)) {
+      console.error("handleAddExpense: data.date is not a valid Date object", data.date);
+      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid. Please check console." });
+      return;
+    }
      try {
-      const docRef = await addDoc(collection(db, "expenseRecords"), {
+      const firestoreData = {
         ...data,
-        date: Timestamp.fromDate(data.date), // Convert Date to Firestore Timestamp
-      });
-      // Optimistically update UI or re-fetch
-      setExpenseRecords(prev => [{ ...data, id: docRef.id }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
+        date: Timestamp.fromDate(data.date),
+      };
+      console.log("Attempting to add expense to Firestore:", JSON.stringify(firestoreData, null, 2));
+      const docRef = await addDoc(collection(db, "expenseRecords"), firestoreData);
+      console.log("Expense added successfully with ID:", docRef.id);
+
+      setExpenseRecords(prev => [{ ...data, id: docRef.id, date: data.date }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
       toast({ title: "Expense Added", description: `${data.category}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
       console.error("Error adding expense to Firestore: ", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not add expense record." });
+      let description = "Could not add expense record. Check console for details.";
+      if (error instanceof Error) {
+        description = error.message;
+      }
+      toast({ variant: "destructive", title: "Error Adding Expense", description });
     }
   };
 
@@ -152,7 +183,6 @@ export default function PocketInsightsPage() {
          setIsLoadingInsights(false);
          return;
     }
-
 
     const expensesForAI: Record<string, number> = currentMonthExpenseRecords.reduce(
       (acc, expense) => {
@@ -169,14 +199,16 @@ export default function PocketInsightsPage() {
     };
 
     try {
+      console.log("Requesting savings insights with input:", input);
       const result = await getSavingsInsights(input);
+      console.log("Received savings insights:", result);
       setSavingsInsights(result.insights);
       toast({ title: "Insights Generated!", description: "Check out your personalized savings tips."});
     } catch (error) {
       console.error("Error getting savings insights:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to generate insights.";
       setSavingsInsightsError(errorMessage);
-      toast({ variant: "destructive", title: "Error", description: errorMessage });
+      toast({ variant: "destructive", title: "Error Generating Insights", description: errorMessage });
     } finally {
       setIsLoadingInsights(false);
     }
