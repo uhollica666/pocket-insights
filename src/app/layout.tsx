@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Pocket Insights',
   description: 'Track your income and expenses, gain financial insights.',
+  manifest: '/manifest.json', // Added manifest link
 };
 
 export default function RootLayout({
@@ -26,6 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#468A8F" /> {/* Primary color for theme */}
+      </head>
       <body 
         className={cn(
           "min-h-screen bg-background font-sans antialiased",

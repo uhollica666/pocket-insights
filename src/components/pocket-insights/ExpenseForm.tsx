@@ -1,4 +1,3 @@
-
 "use client";
 
 import type * as z from "zod";
@@ -15,16 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"; // Changed from Select
 import { Textarea } from "@/components/ui/textarea";
 import { expenseFormSchema } from "@/lib/schemas";
-import { type ExpenseRecord, expenseCategories } from "@/lib/types";
+import { type ExpenseRecord, expenseCategories, type ExpenseCategory } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
 
 
@@ -32,13 +25,18 @@ interface ExpenseFormProps {
   onSubmit: (data: Omit<ExpenseRecord, "id">) => void;
 }
 
+const categoryOptions: ComboboxOption[] = expenseCategories.map(category => ({
+  value: category,
+  label: category,
+}));
+
 export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
   const form = useForm<z.infer<typeof expenseFormSchema>>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       category: undefined,
       description: "",
-      amount: null, // Changed from undefined
+      amount: null,
       date: new Date(),
     },
   });
@@ -50,8 +48,8 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
     };
     onSubmit(dataToSubmit as Omit<ExpenseRecord, "id">);
     form.reset();
-    form.setValue("date", new Date()); // Reset date to today
-    form.setValue("amount", null); // Explicitly reset amount to null
+    form.setValue("date", new Date());
+    form.setValue("amount", null); 
     form.setValue("category", undefined);
     form.setValue("description", "");
   };
@@ -63,22 +61,16 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
           control={form.control}
           name="category"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {expenseCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={categoryOptions}
+                value={field.value}
+                onChange={(value) => field.onChange(value as ExpenseCategory)}
+                placeholder="Select a category"
+                searchPlaceholder="Search categories..."
+                notFoundText="No category found."
+              />
               <FormMessage />
             </FormItem>
           )}
@@ -107,7 +99,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
                   type="number" 
                   placeholder="0.00" 
                   {...field} 
-                  value={field.value === null ? '' : field.value} // Display empty string for null
+                  value={field.value === null ? '' : field.value}
                   onChange={e => {
                     const value = e.target.value;
                     field.onChange(value === '' ? null : parseFloat(value) || null);
@@ -139,4 +131,3 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
     </Form>
   );
 }
-

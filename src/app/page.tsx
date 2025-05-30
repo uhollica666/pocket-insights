@@ -1,7 +1,7 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { AppHeader } from "@/components/pocket-insights/AppHeader";
 import { IncomeForm } from "@/components/pocket-insights/IncomeForm";
 import { ExpenseForm } from "@/components/pocket-insights/ExpenseForm";
@@ -10,6 +10,7 @@ import { SpendingAnalysis } from "@/components/pocket-insights/SpendingAnalysis"
 import { SavingsInsightsSection } from "@/components/pocket-insights/SavingsInsights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { IncomeRecord, ExpenseRecord, ExpenseCategory } from "@/lib/types";
 import { isDateInCurrentMonth } from "@/lib/date-utils";
@@ -17,6 +18,7 @@ import { getSavingsInsights, type SavingsInsightsInput } from "@/ai/flows/saving
 import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, Timestamp, query, orderBy, FirestoreError } from "firebase/firestore";
+import { ListChecks } from "lucide-react";
 
 export default function PocketInsightsPage() {
   const { toast } = useToast();
@@ -31,7 +33,6 @@ export default function PocketInsightsPage() {
   const fetchData = useCallback(async () => {
     setIsLoadingData(true);
     try {
-      console.log("Fetching income records...");
       const incomeQuery = query(collection(db, "incomeRecords"), orderBy("date", "desc"));
       const incomeSnapshot = await getDocs(incomeQuery);
       const fetchedIncomeRecords = incomeSnapshot.docs.map(doc => {
@@ -43,9 +44,7 @@ export default function PocketInsightsPage() {
         } as IncomeRecord;
       });
       setIncomeRecords(fetchedIncomeRecords);
-      console.log("Fetched income records:", fetchedIncomeRecords);
 
-      console.log("Fetching expense records...");
       const expenseQuery = query(collection(db, "expenseRecords"), orderBy("date", "desc"));
       const expenseSnapshot = await getDocs(expenseQuery);
       const fetchedExpenseRecords = expenseSnapshot.docs.map(doc => {
@@ -57,10 +56,8 @@ export default function PocketInsightsPage() {
         } as ExpenseRecord;
       });
       setExpenseRecords(fetchedExpenseRecords);
-      console.log("Fetched expense records:", fetchedExpenseRecords);
 
     } catch (error) {
-      console.error("Error fetching data from Firestore:", error);
       let description = "Could not load financial records. Please check console and try again later.";
       if (error instanceof FirestoreError) {
         description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
@@ -124,10 +121,8 @@ export default function PocketInsightsPage() {
   }, [currentMonthExpenseRecords]);
 
   const handleAddIncome = async (data: Omit<IncomeRecord, "id">) => {
-    console.log("handleAddIncome called with data:", data);
     if (!(data.date instanceof Date)) {
-      console.error("handleAddIncome: data.date is not a valid Date object", data.date);
-      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid. Please check console." });
+      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid." });
       return;
     }
     try {
@@ -135,14 +130,11 @@ export default function PocketInsightsPage() {
         ...data,
         date: Timestamp.fromDate(data.date),
       };
-      console.log("Attempting to add income to Firestore:", JSON.stringify(firestoreData, null, 2));
       const docRef = await addDoc(collection(db, "incomeRecords"), firestoreData);
-      console.log("Income added successfully with ID:", docRef.id);
       
       setIncomeRecords(prev => [{ ...data, id: docRef.id, date: data.date }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
       toast({ title: "Income Added", description: `${data.source}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
-      console.error("Error adding income to Firestore: ", error);
       let description = "Could not add income record. Please check console for details.";
       if (error instanceof FirestoreError) {
         description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
@@ -154,10 +146,8 @@ export default function PocketInsightsPage() {
   };
 
   const handleAddExpense = async (data: Omit<ExpenseRecord, "id">) => {
-    console.log("handleAddExpense called with data:", data);
     if (!(data.date instanceof Date)) {
-      console.error("handleAddExpense: data.date is not a valid Date object", data.date);
-      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid. Please check console." });
+      toast({ variant: "destructive", title: "Internal Error", description: "Date is invalid." });
       return;
     }
      try {
@@ -165,14 +155,11 @@ export default function PocketInsightsPage() {
         ...data,
         date: Timestamp.fromDate(data.date),
       };
-      console.log("Attempting to add expense to Firestore:", JSON.stringify(firestoreData, null, 2));
       const docRef = await addDoc(collection(db, "expenseRecords"), firestoreData);
-      console.log("Expense added successfully with ID:", docRef.id);
 
       setExpenseRecords(prev => [{ ...data, id: docRef.id, date: data.date }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
       toast({ title: "Expense Added", description: `${data.category}: Nu. ${data.amount.toFixed(2)}` });
     } catch (error) {
-      console.error("Error adding expense to Firestore: ", error);
       let description = "Could not add expense record. Please check console for details.";
       if (error instanceof FirestoreError) {
         description = `Firestore Error: ${error.code} - ${error.message}. Check console.`;
@@ -209,13 +196,10 @@ export default function PocketInsightsPage() {
     };
 
     try {
-      console.log("Requesting savings insights with input:", input);
       const result = await getSavingsInsights(input);
-      console.log("Received savings insights:", result);
       setSavingsInsights(result.insights);
       toast({ title: "Insights Generated!", description: "Check out your personalized savings tips."});
     } catch (error) {
-      console.error("Error getting savings insights:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to generate insights.";
       setSavingsInsightsError(errorMessage);
       toast({ variant: "destructive", title: "Error Generating Insights", description: errorMessage });
@@ -269,6 +253,20 @@ export default function PocketInsightsPage() {
         </Card>
 
         <Card className="shadow-lg">
+           <CardHeader>
+            <CardTitle className="text-2xl font-semibold tracking-tight">Expense History</CardTitle>
+            <CardDescription>View all your recorded expense transactions.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/all-expenses">
+                <ListChecks className="mr-2 h-4 w-4" /> View All Expenses
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
           <SavingsInsightsSection
             onGetInsights={handleGetSavingsInsights}
             isLoadingInsights={isLoadingInsights}
@@ -278,9 +276,8 @@ export default function PocketInsightsPage() {
         </Card>
       </div>
       <footer className="py-6 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Pocket Insights. All rights reserved.
+        © {new Date().getFullYear()} Pocket Insights. Developed by Ujwal Hollica with help of Firebase Studio.
       </footer>
     </div>
   );
 }
-
