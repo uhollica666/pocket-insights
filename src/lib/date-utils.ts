@@ -19,7 +19,9 @@ export const isDateInCurrentMonth = (date: Date): boolean => {
 };
 
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  // Intl.NumberFormat for 'BTN' (Bhutanese Ngultrum) typically displays 'BTN' as the code.
+  // To display 'Nu.', we'll format the number and prepend 'Nu. '.
+  return 'Nu. ' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export const formatDate = (date: Date): string => {

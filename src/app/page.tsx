@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { AppHeader } from "@/components/pocket-insights/AppHeader";
 import { IncomeForm } from "@/components/pocket-insights/IncomeForm";
 import { ExpenseForm } from "@/components/pocket-insights/ExpenseForm";
@@ -15,35 +15,60 @@ import type { IncomeRecord, ExpenseRecord, ExpenseCategory } from "@/lib/types";
 import { isDateInCurrentMonth } from "@/lib/date-utils";
 import { getSavingsInsights, type SavingsInsightsInput } from "@/ai/flows/savings-insights";
 import { Separator } from "@/components/ui/separator";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, getDocs, Timestamp, query, orderBy } from "firebase/firestore";
 
 export default function PocketInsightsPage() {
   const { toast } = useToast();
   const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [savingsInsights, setSavingsInsights] = useState<string[] | undefined>(undefined);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [savingsInsightsError, setSavingsInsightsError] = useState<string | null>(null);
 
-  // Hydration-safe state initialization for localStorage
-  useEffect(() => {
-    const storedIncome = localStorage.getItem("pocketInsightsIncome");
-    if (storedIncome) {
-      setIncomeRecords(JSON.parse(storedIncome, (key, value) => key === 'date' ? new Date(value) : value));
+  const fetchData = useCallback(async () => {
+    setIsLoadingData(true);
+    try {
+      const incomeQuery = query(collection(db, "incomeRecords"), orderBy("date", "desc"));
+      const incomeSnapshot = await getDocs(incomeQuery);
+      const fetchedIncomeRecords = incomeSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          ...data, 
+          id: doc.id, 
+          date: (data.date as Timestamp).toDate() 
+        } as IncomeRecord;
+      });
+      setIncomeRecords(fetchedIncomeRecords);
+
+      const expenseQuery = query(collection(db, "expenseRecords"), orderBy("date", "desc"));
+      const expenseSnapshot = await getDocs(expenseQuery);
+      const fetchedExpenseRecords = expenseSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          ...data, 
+          id: doc.id, 
+          date: (data.date as Timestamp).toDate() 
+        } as ExpenseRecord;
+      });
+      setExpenseRecords(fetchedExpenseRecords);
+    } catch (error) {
+      console.error("Error fetching data from Firestore:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Data",
+        description: "Could not load financial records. Please try again later.",
+      });
+    } finally {
+      setIsLoadingData(false);
     }
-    const storedExpenses = localStorage.getItem("pocketInsightsExpenses");
-    if (storedExpenses) {
-      setExpenseRecords(JSON.parse(storedExpenses, (key, value) => key === 'date' ? new Date(value) : value));
-    }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
-    localStorage.setItem("pocketInsightsIncome", JSON.stringify(incomeRecords));
-  }, [incomeRecords]);
-
-  useEffect(() => {
-    localStorage.setItem("pocketInsightsExpenses", JSON.stringify(expenseRecords));
-  }, [expenseRecords]);
+    fetchData();
+  }, [fetchData]);
 
 
   const currentMonthIncomeRecords = useMemo(() => {
@@ -87,22 +112,47 @@ export default function PocketInsightsPage() {
     return categoryWithMaxSpending ? { category: categoryWithMaxSpending, amount: maxAmount } : undefined;
   }, [currentMonthExpenseRecords]);
 
-  const handleAddIncome = (data: Omit<IncomeRecord, "id">) => {
-    const newRecord: IncomeRecord = { ...data, id: Date.now().toString() };
-    setIncomeRecords((prev) => [...prev, newRecord]);
-    toast({ title: "Income Added", description: `${data.source}: $${data.amount.toFixed(2)}` });
+  const handleAddIncome = async (data: Omit<IncomeRecord, "id">) => {
+    try {
+      const docRef = await addDoc(collection(db, "incomeRecords"), {
+        ...data,
+        date: Timestamp.fromDate(data.date), // Convert Date to Firestore Timestamp
+      });
+      // Optimistically update UI or re-fetch
+      setIncomeRecords(prev => [{ ...data, id: docRef.id }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
+      toast({ title: "Income Added", description: `${data.source}: Nu. ${data.amount.toFixed(2)}` });
+    } catch (error) {
+      console.error("Error adding income to Firestore: ", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not add income record." });
+    }
   };
 
-  const handleAddExpense = (data: Omit<ExpenseRecord, "id">) => {
-    const newRecord: ExpenseRecord = { ...data, id: Date.now().toString() };
-    setExpenseRecords((prev) => [...prev, newRecord]);
-    toast({ title: "Expense Added", description: `${data.category}: $${data.amount.toFixed(2)}` });
+  const handleAddExpense = async (data: Omit<ExpenseRecord, "id">) => {
+     try {
+      const docRef = await addDoc(collection(db, "expenseRecords"), {
+        ...data,
+        date: Timestamp.fromDate(data.date), // Convert Date to Firestore Timestamp
+      });
+      // Optimistically update UI or re-fetch
+      setExpenseRecords(prev => [{ ...data, id: docRef.id }, ...prev].sort((a,b) => b.date.getTime() - a.date.getTime()));
+      toast({ title: "Expense Added", description: `${data.category}: Nu. ${data.amount.toFixed(2)}` });
+    } catch (error) {
+      console.error("Error adding expense to Firestore: ", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not add expense record." });
+    }
   };
 
   const handleGetSavingsInsights = async (targetSavingsRate: number) => {
     setIsLoadingInsights(true);
     setSavingsInsightsError(null);
     setSavingsInsights(undefined);
+
+    if (totalMonthlyIncome === 0 && currentMonthExpenseRecords.length === 0) {
+         toast({ variant: "default", title: "No Data for Insights", description: "Please add some income and expenses for the current month to get insights."});
+         setIsLoadingInsights(false);
+         return;
+    }
+
 
     const expensesForAI: Record<string, number> = currentMonthExpenseRecords.reduce(
       (acc, expense) => {
@@ -132,14 +182,13 @@ export default function PocketInsightsPage() {
     }
   };
   
-  // Ensure component is client-side for localStorage access
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return null; // Or a loading skeleton
+  if (isLoadingData) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <AppHeader />
+        <p className="text-lg text-muted-foreground mt-8">Loading financial data...</p>
+      </div>
+    );
   }
 
   return (
