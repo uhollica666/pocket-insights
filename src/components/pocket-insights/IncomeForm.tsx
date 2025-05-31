@@ -1,4 +1,3 @@
-
 "use client";
 
 import type * as z from "zod";
@@ -18,32 +17,52 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { incomeFormSchema } from "@/lib/schemas";
 import type { IncomeRecord } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
+import { accounts, type Account, paymentMethods, type PaymentMethod } from "@/lib/types";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 
 interface IncomeFormProps {
   onSubmit: (data: Omit<IncomeRecord, "id">) => void;
 }
+
+const accountOptions: ComboboxOption[] = accounts.map((account) => ({
+  value: account,
+  label: account,
+}));
+
+const paymentMethodOptions: ComboboxOption[] = paymentMethods.map(method => ({
+  value: method,
+  label: method,
+}));
 
 export function IncomeForm({ onSubmit }: IncomeFormProps) {
   const form = useForm<z.infer<typeof incomeFormSchema>>({
     resolver: zodResolver(incomeFormSchema),
     defaultValues: {
       source: "",
-      amount: null, // Changed from undefined
+      amount: undefined,
       date: new Date(),
+      account: "U-bob",
+      paymentMethod: "Account",
     },
   });
 
   const handleSubmit = (values: z.infer<typeof incomeFormSchema>) => {
     // Ensure amount is a number before submitting, schema will validate
     const dataToSubmit = {
-        ...values,
-        amount: values.amount === null ? 0 : values.amount, // Or handle as per your schema's expectation for null
+      ...values,
+      amount:
+        typeof values.amount === "string"
+          ? (values.amount as string).trim() === "" ? 0 : Number(values.amount)
+          : Number(values.amount),
     };
-    onSubmit(dataToSubmit as Omit<IncomeRecord, "id">); // Cast might be needed if schema expects number
-    form.reset();
-     form.setValue("date", new Date()); // Reset date to today after submission
-     form.setValue("amount", null); // Explicitly reset amount to null
-     form.setValue("source", ""); 
+    onSubmit(dataToSubmit as Omit<IncomeRecord, "id">);
+    form.reset({
+      source: "",
+      amount: 0,
+      date: new Date(),
+      account: "U-bob",
+      paymentMethod: "Account",
+    });
   };
 
   return (
@@ -69,14 +88,15 @@ export function IncomeForm({ onSubmit }: IncomeFormProps) {
             <FormItem>
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="0.00" 
-                  {...field} 
-                  value={field.value === null ? '' : field.value} // Display empty string for null
-                  onChange={e => {
+                <Input
+                  type="number"
+                  value={field.value ?? ""} // Always use string for input
+                  onChange={(e) => {
                     const value = e.target.value;
-                    field.onChange(value === '' ? null : parseFloat(value) || null);
+                    // Only allow numbers or empty string
+                    if (/^\d*\.?\d*$/.test(value)) {
+                      field.onChange(value);
+                    }
                   }}
                 />
               </FormControl>
@@ -90,9 +110,40 @@ export function IncomeForm({ onSubmit }: IncomeFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
-              <DatePicker
+              <DatePicker value={field.value} onChange={field.onChange} />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="account"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Account</FormLabel>
+              <Combobox
+                options={accountOptions}
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(value) => field.onChange(value as Account)}
+                placeholder="Select an account"
+                notFoundText="No account found."
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Payment Method</FormLabel>
+              <Combobox
+                options={paymentMethodOptions}
+                value={field.value}
+                onChange={(value) => field.onChange(value as PaymentMethod)}
+                placeholder="Select payment method"
+                notFoundText="No method found."
               />
               <FormMessage />
             </FormItem>

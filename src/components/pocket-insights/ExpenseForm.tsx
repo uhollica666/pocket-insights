@@ -17,7 +17,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"; // Changed from Select
 import { Textarea } from "@/components/ui/textarea";
 import { expenseFormSchema } from "@/lib/schemas";
-import { type ExpenseRecord, expenseCategories, type ExpenseCategory } from "@/lib/types";
+import { type ExpenseRecord, expenseCategories, type ExpenseCategory, accounts, type Account, paymentMethods, type PaymentMethod } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
 
 
@@ -30,27 +30,39 @@ const categoryOptions: ComboboxOption[] = expenseCategories.map(category => ({
   label: category,
 }));
 
+const accountOptions: ComboboxOption[] = accounts.map(account => ({
+  value: account,
+  label: account,
+}));
+
+const paymentMethodOptions: ComboboxOption[] = paymentMethods.map(method => ({
+  value: method,
+  label: method,
+}));
+
 export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
   const form = useForm<z.infer<typeof expenseFormSchema>>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       category: undefined,
       description: "",
-      amount: null,
+      amount: undefined,
       date: new Date(),
+      account: "U-bob",
+      paymentMethod: "Account",
     },
   });
 
   const handleSubmit = (values: z.infer<typeof expenseFormSchema>) => {
     const dataToSubmit = {
-        ...values,
-        amount: values.amount === null ? 0 : values.amount, 
+      ...values,
+      amount: values.amount === null ? 0 : values.amount,
     };
     onSubmit(dataToSubmit as Omit<ExpenseRecord, "id">);
     form.reset();
     form.setValue("date", new Date());
-    form.setValue("amount", null); 
-    form.setValue("category", undefined);
+    form.setValue("amount", 0);
+    form.setValue("category", "");
     form.setValue("description", "");
   };
 
@@ -95,10 +107,10 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             <FormItem>
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="0.00" 
-                  {...field} 
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  {...field}
                   value={field.value === null ? '' : field.value}
                   onChange={e => {
                     const value = e.target.value;
@@ -116,9 +128,43 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
-               <DatePicker
+              <DatePicker
                 value={field.value}
                 onChange={field.onChange}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="account"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Account</FormLabel>
+              <Combobox
+                options={accountOptions}
+                value={field.value}
+                onChange={(value) => field.onChange(value as Account)}
+                placeholder="Select an account"
+                notFoundText="No account found."
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Payment Method</FormLabel>
+              <Combobox
+                options={paymentMethodOptions}
+                value={field.value}
+                onChange={(value) => field.onChange(value as PaymentMethod)}
+                placeholder="Select payment method"
+                notFoundText="No method found."
               />
               <FormMessage />
             </FormItem>

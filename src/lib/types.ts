@@ -13,19 +13,37 @@ import {
   HeartPulse, ShieldAlert
 } from 'lucide-react';
 
+export type Account = 'R-bob' | 'R-bnb' | 'U-bob' | 'U-bnb' | 'U-dk';
+export const accounts: Account[] = ['R-bob', 'R-bnb', 'U-bob', 'U-bnb', 'U-dk'];
+
 export interface Transaction {
   id: string;
   amount: number;
   date: Date;
+  account: Account; // Added account field
+}
+
+export type PaymentMethod = 'Account' | 'Cash';
+export const paymentMethods: PaymentMethod[] = ['Account', 'Cash'];
+
+export interface TransferRecord {
+  id: string;
+  fromAccount: Account;
+  toAccount: Account;
+  amount: number;
+  date: Date;
+  note?: string;
 }
 
 export interface IncomeRecord extends Transaction {
   source: string;
+  paymentMethod: PaymentMethod;
 }
 
 export interface ExpenseRecord extends Transaction {
   category: ExpenseCategory;
   description: string;
+  paymentMethod: PaymentMethod;
 }
 
 export type ExpenseCategory =
