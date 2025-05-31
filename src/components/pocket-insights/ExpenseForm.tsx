@@ -19,10 +19,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { expenseFormSchema } from "@/lib/schemas";
 import { type ExpenseRecord, expenseCategories, type ExpenseCategory, accounts, type Account, paymentMethods, type PaymentMethod } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface ExpenseFormProps {
   onSubmit: (data: Omit<ExpenseRecord, "id">) => void;
+  accountBalances: Record<Account, { income: number; expenses: number; balance: number; cashWithdrawals: number }>;
 }
 
 const categoryOptions: ComboboxOption[] = expenseCategories.map(category => ({
@@ -40,7 +42,8 @@ const paymentMethodOptions: ComboboxOption[] = paymentMethods.map(method => ({
   label: method,
 }));
 
-export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
+export function ExpenseForm({ onSubmit, accountBalances }: ExpenseFormProps) {
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof expenseFormSchema>>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -54,9 +57,20 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
   });
 
   const handleSubmit = (values: z.infer<typeof expenseFormSchema>) => {
+    const balances = accountBalances || {};
+    const account = values.account as Account;
+    const amount = values.amount === null ? 0 : values.amount;
+    if (balances[account] !== undefined && amount > balances[account].balance) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Funds",
+        description: `Not enough balance in ${account} to pay Nu. ${amount.toFixed(2)}. Available: Nu. ${balances[account].balance.toFixed(2)}`
+      });
+      return;
+    }
     const dataToSubmit = {
       ...values,
-      amount: values.amount === null ? 0 : values.amount,
+      amount,
     };
     onSubmit(dataToSubmit as Omit<ExpenseRecord, "id">);
     form.reset();

@@ -21,6 +21,12 @@ import { collection, addDoc, getDocs, Timestamp, query, orderBy, FirestoreError 
 import { ListChecks } from "lucide-react";
 import { TransferForm } from "@/components/pocket-insights/TransferForm";
 
+declare global {
+  interface Window {
+    __accountBalances?: Record<string, { income: number; expenses: number; balance: number; cashWithdrawals: number }>;
+  }
+}
+
 export default function PocketInsightsPage() {
   const { toast } = useToast();
   const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
@@ -305,6 +311,11 @@ export default function PocketInsightsPage() {
     return txs.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
   }, [incomeRecords, expenseRecords, transferRecords]);
 
+  // Expose accountBalances globally for validation in forms. This is a temporary solution; ideally, use context or props.
+  if (typeof window !== "undefined") {
+    window.__accountBalances = accountBalances;
+  }
+
   if (isLoadingData) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center">
@@ -334,7 +345,7 @@ export default function PocketInsightsPage() {
                 <IncomeForm onSubmit={handleAddIncome} />
               </TabsContent>
               <TabsContent value="expense" className="pt-6">
-                <ExpenseForm onSubmit={handleAddExpense} />
+                <ExpenseForm onSubmit={handleAddExpense} accountBalances={accountBalances} />
               </TabsContent>
               <TabsContent value="transfer" className="pt-6">
                 <TransferForm onSubmit={handleAddTransfer} />

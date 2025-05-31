@@ -13,8 +13,8 @@ import {
   HeartPulse, ShieldAlert
 } from 'lucide-react';
 
-export type Account = 'R-bob' | 'R-bnb' | 'U-bob' | 'U-bnb' | 'U-dk';
-export const accounts: Account[] = ['R-bob', 'R-bnb', 'U-bob', 'U-bnb', 'U-dk'];
+export type Account = 'R-bob' | 'R-bnb' | 'U-bob' | 'U-bnb' | 'U-dk' | 'Cash';
+export const accounts: Account[] = ['R-bob', 'R-bnb', 'U-bob', 'U-bnb', 'U-dk', 'Cash'];
 
 export interface Transaction {
   id: string;
